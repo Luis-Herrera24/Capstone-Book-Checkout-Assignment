@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Capstone Book Checkout Assigment</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    .header {
+      text-align: center;
+      padding: 20px;
+      background-color: #333;
+      color: #fff;
+    }
+    .container {
+      display: flex;
+      justify-content: space-between;
+      padding: 20px;
+    }
+    .column {
+      width: 48%;
+      padding: 10px;
+      box-sizing: border-box;
+    }
+    .button {
+      display: block;
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 10px;
+      cursor: pointer;
+      background-color: rgb(52, 92, 193);
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+    }
+    .input {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      box-sizing: border-box;
+    }
+
+    h2 {
+      text-align: center;
+    }
+    
+  </style>
+</head>
+
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    function BookList({ handleSelectBook }) {
+      const [books, setBooks] = useState([]);
+
+      useEffect(() => {
+        fetchBooks();
+      }, []);
+
+      const fetchBooks = async () => {
+        try {
+          const response = await fetch('http://localhost:3000/books');
+          const data = await response.json();
+          setBooks(data);
+        } catch (error) {
+          console.error('Error fetching available books:', error);
+        }
+      };
+
+      return (
+        <div>
+          <h2>Available Books</h2>
+          {books.map((book) => (
+            <button
+              key={book._id} 
+              className="button"
+              onClick={() => handleSelectBook(book.title)}
+            >
+              {book.title} by: {book.author}
+            </button>
+          ))}
+        </div>
+      );
+    }
+
+    function BookCheckout({ bookTitle }) {
+      const [name, setName] = useState('');
+      const [dueDate, setDueDate] = useState('');
+
+      useEffect(() => {
+        const today = new Date();
+        const due = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
+        setDueDate(due.toISOString().slice(0, 10));
+      }, []);
+
+      const handleCheckout = async () => {
+        try {
+          const response = await fetch(`http://localhost:3000/books/check-out/${bookTitle}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              checkedOutBy: name,
+              dueDate: dueDate
+            })
+          });
+
+          if (response.ok) {
+            console.log('Book checked out successfully!');
+            refreshPage(); 
+          } else {
+            throw new Error('Error checking out book');
+          }
+        } catch (error) {
+          console.error('Error checking out book:', error);
+        }
+      };
+
+      return (
+        <div>
+          <h2>Checkout Book: {bookTitle}</h2>
+          <input
+            type="text"
+            className="input"
+            placeholder="Enter Your Name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+          <input
+            type="date"
+            className="input"
+            value={dueDate}
+            min={dueDate}
+            onChange={(e) => setDueDate(e.target.value)}
+          />
+          <button className="button" onClick={handleCheckout}>Checkout Book</button>
+        </div>
+      );
+    }
+
+    function CheckedOutBooks({ onCheckInBook }) {
+      const [checkedOutBooks, setCheckedOutBooks] = useState([]);
+
+      useEffect(() => {
+        fetchCheckedOutBooks();
+      }, []);
+
+      const fetchCheckedOutBooks = async () => {
+        try {
+          const response = await fetch('http://localhost:3000/books/checked-out');
+          const data = await response.json();
+          setCheckedOutBooks(data);
+        } catch (error) {
+          console.error('Error fetching checked out books:', error);
+        }
+      };
+
+      const handleCheckIn = async (bookTitle) => {
+        try {
+          const response = await fetch(`http://localhost:3000/books/check-in/${bookTitle}`, {
+            method: 'PUT',
+          });
+
+          if (response.ok) {
+            console.log('Book checked in successfully!');
+            refreshPage(); 
+          } else {
+            throw new Error('Error checking in book');
+          }
+        } catch (error) {
+          console.error('Error checking in book:', error);
+        }
+      };
+
+      return (
+        <div>
+          <h2>Checked Out Books</h2>
+          <ul className="list">
+            {checkedOutBooks.map((book) => (
+              <li key={book._id} className="list-item">
+                {book.title} - Checked Out By: {book.checkedOutBy} - Due Date: {book.dueDate}
+                <button className="button" onClick={() => handleCheckIn(book.title)}>
+                  Check In
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      );
+    }
+
+    function Clock() {
+      const [date, setDate] = useState(new Date());
+
+      useEffect(() => {
+        const timerID = setInterval(() => tick(), 1000);
+        return () => clearInterval(timerID);
+      }, []);
+
+      function tick() {
+        setDate(new Date());
+      }
+
+      return (
+        <div>
+          <h3>{date.toLocaleTimeString()}.</h3>
+        </div>
+      );
+    }
+
+    function ƒ() {
+      window.location.reload(); // Function to refresh the page
+    }
+
+    function App() {
+      const [selectedBook, setSelectedBook] = useState(null);
+
+      return (
+        <div>
+          <div className="header">
+            <h1>Capstone Book Checkout Assignment</h1>
+            <Clock />
+          </div>
+          <div className="container">
+            <div className="column">
+              <BookList handleSelectBook={setSelectedBook} />
+              {selectedBook && <BookCheckout bookTitle={selectedBook} />}
+            </div>
+            <div className="column">
+              <CheckedOutBooks />
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.render(<App />, document.getElementById('root'));
+  </script>
+</body>
+</html>
